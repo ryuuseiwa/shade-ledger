@@ -1,49 +1,55 @@
 ---
-title: "Shade Ledger: I built a local AI that sends me outside to audit neighborhood shade"
+title: "Shade Ledger: A Local AI That Sends You Outside to Notice Neighborhood Shade"
 published: false
 tags: devchallenge, hf26challenge, ai, opensource
 ---
 
-*This is a submission for the [Hacktoberfest Open-Source AI Challenge Week 1: Touch Grass](https://dev.to/challenges/hacktoberfest-week1-2026-10-05).*
+*This is a submission for the [Hacktoberfest Open-Source AI Challenge Week 1: Touch Grass](https://dev.to/challenges/hacktoberfest-week1-2026-10-05)*
 
 ## What I Built
 
-I built **Shade Ledger**, a small fieldwork companion that deliberately tries to get out of your way. Instead of tracking every step or asking you to keep your phone in hand, it creates a short, personalized outdoor mission and asks you to come back with a few observations about your neighborhood. The inspiration came from thinking about how city design, the environment, and everyday decisions overlap: shade and greenery aren't only nice to look at; they're things worth noticing.
+**Shade Ledger** is a small fieldwork companion that tries to get out of your way. Most outdoor apps turn a walk into more screen time: step counts, GPS trails, notifications. Shade Ledger does the opposite. It asks a locally running open-weight model to design a short, personalized outdoor mission, tells you to close your laptop, and then waits for you to come back with a few observations about your neighborhood.
 
-Choose your time, accessible movement style, and topic (shade, biodiversity, stormwater, or public-space care). Your laptop's local AI creates three steps and three things to notice. Then you leave the screen. When you return, you can create a tiny "field receipt" and compare what you saw on future visits. Shade share is explicitly a rough count of observed stops, **not** a measured heat or canopy metric.
+You pick how long you have (5–30 minutes), where you can go, how you'll explore (walking, a slow stroll, a wheelchair-friendly route, or seated observation), what you want to notice (shade and urban heat, trees and biodiversity, rainwater and drainage, urban nature, or public-space care), your pace, and a rough climate context. The model returns a mission with three steps, three things to notice, and one question to think about later.
+
+When you get back, you fill in a 60-second **field receipt**: how many stops you made, how many felt shaded, how many planted or permeable surfaces and drainage features you spotted, and how being outside felt. It's saved to a local ledger so you can compare visits over time.
+
+It's for anyone who wants a gentle reason to step outside and pay attention, and especially for people curious about how city design shapes everyday comfort. Shade and greenery aren't just nice to look at; they're worth noticing. To be clear about what it isn't: the "shade share" is a simple count of the stops you chose, **not** a measurement of temperature, canopy cover, or environmental impact.
 
 ## Demo
 
-**[ADD: a short screen recording/GIF of local mission generation and saved field receipt.]**
+Shade Ledger is designed for local inference and local storage, so there's no hosted version. These screenshots are from the app running on my machine against the local Qwen2.5 model:
 
-**[ADD: one real photo/video from your field test, if comfortable.]**
+**A mission generated locally by Qwen2.5 1.5B via Ollama:**
 
-Local setup and demo instructions are in the README. A public hosted demo isn't available because the app is designed for local inference and local storage.
+![Shade Ledger generating an outdoor mission with a local model](https://raw.githubusercontent.com/ryuuseiwa/shade-ledger/main/docs/02-mission.png)
+
+**The field receipt you fill in when you come back (shown with example values):**
+
+![Shade Ledger field receipt showing a 50% observed shade share](https://raw.githubusercontent.com/ryuuseiwa/shade-ledger/main/docs/03-field-receipt.png)
+
+To run it yourself, setup takes a few minutes and is described in the README.
 
 ## Code
 
-**[ADD YOUR GITHUB REPOSITORY URL AFTER PUSHING]**
+{% github ryuuseiwa/shade-ledger %}
 
 ## How I Built It
 
-The interface is Streamlit; the AI engine is the **Apache-2.0-licensed Qwen2.5 1.5B Instruct** open-weight model running locally via Ollama. `engine.py` builds a safety-constrained, mobility-aware prompt and requests actual structured JSON generation via Ollama's local endpoint. Schema checks reject incomplete results. The model—not a predefined list of trips—creates the actual mission. `app.py` manages the UI and writes local JSONL observations. Small deterministic functions compute a transparently labeled shade-stop percentage.
+- **Model:** [Qwen2.5 1.5B Instruct](https://ollama.com/library/qwen2.5:1.5b-instruct), an Apache-2.0 open-weight model, running locally through **Ollama**.
+- **Inference:** a plain HTTP call to Ollama's local `/api/generate` endpoint at `127.0.0.1:11434`, using Ollama's JSON mode for structured output. On my desktop (AMD RX 7900 GRE), a mission comes back in about 3 seconds.
+- **Prompting:** `engine.py` builds a safety-constrained, mobility-aware prompt from your choices. It tells the model to keep you in public, accessible areas, never to suggest entering roads, trespassing, touching unknown plants or animals, or going out in unsafe weather, and not to invent routes, species, temperatures, or safety conditions.
+- **Validation:** the response is parsed and checked against a strict schema (a title, a mission, exactly three steps, exactly three things to notice, and a reflection question). Anything malformed is rejected with a clear error.
+- **No fake fallback:** if the model isn't available, the app says so. There's no hardcoded list of canned missions pretending to be AI.
+- **UI and storage:** Streamlit for the interface; field receipts are appended to a local JSONL file that's git-ignored, viewable in the app, and exportable as JSON.
+- **Tests:** unit tests cover the schema validation, the scoring, and the prompt builder.
 
-My architecture is simple: **user preferences → Python prompt → local Ollama/Qwen model → validated mission → get outside → local observation receipt.** No account, GPS, paid API, or cloud database is necessary.
+The whole flow is: **your preferences → prompt → local Qwen model → validated mission → go outside → local field receipt.** No account, GPS, paid API, or cloud database.
 
 ## Why Does Open Innovation Matter?
 
-I wanted a tool that can help me pay attention to my surroundings without sending my location-related habits and reflections to an outside provider. Once I install the model, mission generation can run without internet. Open weights make it practical to change models, edit the prompting, experiment with smaller hardware requirements, and inspect how the AI is used instead of depending on a closed remote API. There's no per-mission API fee. Setup downloads and compute still have costs.
+Where you walk and what you notice about your own neighborhood is personal. With an open-weight model running on my own machine, none of that leaves my computer. Once the model is downloaded, mission generation works with Wi-Fi off.
 
-More importantly, making the fieldwork logic inspectable means the app can be adapted for a campus accessibility walk, local stormwater observations, or a neighborhood green-space journal without changing the core idea: **less screen time, more real-world attention.**
+Open weights also make the project adaptable. Anyone can swap in a different Ollama model from the sidebar, rewrite the prompt, or run it on smaller hardware, without asking a vendor or paying per request. Because the prompt, validation, and scoring are all plain, inspectable Python, the same idea could be reshaped into a campus accessibility walk, a stormwater observation log, or a neighborhood green-space journal.
 
-## What Happened When I Took It Outside
-
-**[FILL IN ONLY AFTER YOU REALLY TEST OUTDOORS: date, place at a broad level, how long you spent, what you observed, what surprised you, and one thing you would change.]**
-
-## My Agent Session
-
-**[OPTIONAL: add a real DevRelay session embed/link if you record one.]**
-
-## Prize Categories
-
-**[OPTIONAL: identify only eligible categories confirmed from the official challenge page.]**
+A closed API would have meant an account, a key, a per-mission cost, and sending people's reflections about their surroundings to a third party. For an app whose whole point is *less* screen and *more* attention, keeping the AI small, local, and open felt like the right fit.
